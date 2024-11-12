@@ -70,7 +70,7 @@ function App() {
 
     const makeChoice = async (selectedChoice) => {
         if (gameState.status !== 'round_active') return;
-        setChoice(selectedChoice)
+        // setChoice(selectedChoice)
         try {
             await axios.post(`${API_URL}/game/${gameId}/choice`, {
                 player,
@@ -80,6 +80,48 @@ function App() {
             setError('Error making choice. Please try again.')
         }
     }
+    const [items, setItems] = useState([
+        { id: 1, content: 'rock', list: 'list1' },
+        { id: 2, content: 'paper', list: 'list1' },
+        { id: 3, content: 'scissors', list: 'list1' },
+    ])
+    const handleDragStart = (e, id) => {
+        e.dataTransfer.setData('text/plain', id);
+        e.currentTarget.classList.add('opacity-50');
+    };
+
+    const handleDragEnd = (e) => {
+        e.currentTarget.classList.remove('opacity-50');
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.currentTarget.classList.add('bg-blue-100');
+    };
+
+    const handleDragLeave = (e) => {
+        e.currentTarget.classList.remove('bg-blue-100');
+    };
+
+    const handleDrop = (e, targetList) => {
+        e.preventDefault();
+        e.currentTarget.classList.remove('bg-blue-100');
+
+        const itemId = parseInt(e.dataTransfer.getData('text/plain'));
+
+        if (targetList === "list2") {
+            setChoice(itemId.content)
+        }
+
+        setItems(items.map(item =>
+            item.id === itemId
+                ? { ...item, list: targetList }
+                : item
+        ));
+    };
+
+    const getListItems = (listName) =>
+        items.filter(item => item.list === listName);
 
     const renderGame = () => {
         if (!gameState) return <p>Loading game state...</p>
@@ -115,11 +157,48 @@ function App() {
         }
 
         return (
-            <div>
+            <>
+            <div className={"game-bar"}>
                 <p>You are Player {player}</p>
                 <p>Round: {gameState.roundNumber}</p>
-                <p>Your health: {gameState.health[player]}</p>
-                <p>Opponent health: {gameState.health[player === '1' ? '2' : '1']}</p>
+            </div>
+            <div className={"battle-area"}>
+                <div className={"team-area"}>
+                    <div className={"player-area"}>
+                        <div className={"amulet"}>
+                            Amulet
+                        </div>
+                        <div className={"player-hero"}>
+                            <p>Your health: {gameState.health[player]}</p>
+                        </div>
+                        <div className={"ring"}>
+                            Ring 1
+                        </div>
+                        <div className={"ring"}>
+                            Ring 2
+                        </div>
+                    </div>
+
+                    <div className={"player-units"}>
+                        <div className="card" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={(e) => handleDrop(e, 'list2')} >
+                            {getListItems('list2').map(item => (
+                                <div
+                                    key={item.id}
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, item.id)}
+                                    onDragEnd={handleDragEnd}
+                                    className="p-3 mb-2 bg-white border rounded-lg cursor-move hover:bg-gray-50"
+                                >
+                                    {item.content}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+                <div className={"team-area opponent-area"}>
+                    <p>Opponent health: {gameState.health[player === '1' ? '2' : '1']}</p>
+                </div>
+            </div>
                 {gameState.status === 'round_complete' && gameState.roundResult && (
                     <p>
                         Round result:
@@ -128,15 +207,36 @@ function App() {
                     </p>
                 )}
                 {gameState.status === 'round_active' && !choice && (
-                    <div>
-                        <button onClick={() => makeChoice('rock')}>Rock</button>
-                        <button onClick={() => makeChoice('paper')}>Paper</button>
-                        <button onClick={() => makeChoice('scissors')}>Scissors</button>
+                        <div
+                            className="card-container"
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={(e) => handleDrop(e, 'list1')}
+                        >
+                            {getListItems('list1').map(item => (
+                                <div
+                                    key={item.id}
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, item.id)}
+                                    onDragEnd={handleDragEnd}
+                                    className={"card"}
+                                >
+                                    {item.content}
+                                </div>
+                            ))}
+                        <div draggable={false}>
+                            <button onClick={() => makeChoice(choice)}>Confirm Choice</button>
+                        </div>
                     </div>
-                )}
-                {gameState.status === 'round_active' && choice && <p>You chose: {choice}. Waiting for opponent...</p>}
-                {gameState.status === 'round_complete' && <p>Round complete! Next round starting soon...</p>}
-            </div>
+                )
+                }
+                {
+                    gameState.status === 'round_active' && choice && <p>You chose: {choice}. Waiting for opponent...</p>
+                }
+                {
+                    gameState.status === 'round_complete' && <p>Round complete! Next round starting soon...</p>
+                }
+            </>
         )
     }
 
@@ -151,8 +251,7 @@ function App() {
     }
 
     return (
-        <div>
-            <h1>Rock Paper Scissors Auto Battle</h1>
+        <>
             {error && (
                 <div>
                     <p style={{color: 'red'}}>{error}</p>
@@ -161,7 +260,7 @@ function App() {
             )}
             {!gameId && !error && <button onClick={createGame}>Create New Game</button>}
             {gameId && !error && renderGame()}
-        </div>
+        </>
     )
 }
 

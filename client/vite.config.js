@@ -12,6 +12,6 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, '')
       },
     },
-    hmr: false, // Disable Hot Module Replacement to test multiplayer
+    hmr: true, // Disable Hot Module Replacement to test multiplayer
   },
 })
